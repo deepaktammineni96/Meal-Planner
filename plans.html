@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meal Plans</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="plans">
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="panel hero-panel">
+          <div class="sidebar-topbar">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="sidebar">
+              Collapse
+            </button>
+          </div>
+          <p class="eyebrow">Meal plans</p>
+          <h1>Create and manage future weeks.</h1>
+          <p class="muted">Each plan represents one Monday-Sunday week.</p>
+        </div>
+        <nav class="panel nav-panel">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link" href="./plans.html">Meal Plans</a>
+          <a class="nav-link" href="./planner.html">Weekly Planner</a>
+          <a class="nav-link" href="./recipes.html">Recipes</a>
+          <a class="nav-link" href="./shopping-list.html">Shopping List</a>
+        </nav>
+      </aside>
+      <main class="main-content">
+        <button class="sidebar-reopen hidden" id="sidebar-reopen" type="button" aria-controls="sidebar" aria-label="Show menu">
+          &#9776;
+        </button>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Create Meal Plan</h2>
+          </div>
+          <form id="plan-form" class="stacked-form">
+            <label>
+              Plan name
+              <input id="plan-name" type="text" placeholder="Week of May 6" required />
+            </label>
+            <label>
+              Week starts on
+              <input id="plan-date" type="date" required />
+            </label>
+            <button class="primary-btn" type="submit">Save Meal Plan</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Saved Meal Plans</h2>
+          </div>
+          <p class="muted">Open any plan directly in the weekly planner, or remove one you no longer need.</p>
+          <div id="plan-list" class="plan-list"></div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

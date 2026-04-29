@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="recipes">
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="panel hero-panel">
+          <div class="sidebar-topbar">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="sidebar">
+              Collapse
+            </button>
+          </div>
+          <p class="eyebrow">Recipes</p>
+          <h1>Keep your go-to meals in one place.</h1>
+          <p class="muted">Add frequently cooked recipes so they are ready to reuse each week.</p>
+        </div>
+        <nav class="panel nav-panel">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link" href="./plans.html">Meal Plans</a>
+          <a class="nav-link" href="./planner.html">Weekly Planner</a>
+          <a class="nav-link" href="./recipes.html">Recipes</a>
+          <a class="nav-link" href="./shopping-list.html">Shopping List</a>
+        </nav>
+      </aside>
+      <main class="main-content">
+        <button class="sidebar-reopen hidden" id="sidebar-reopen" type="button" aria-controls="sidebar" aria-label="Show menu">
+          &#9776;
+        </button>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Recipe Library</h2>
+          </div>
+          <details class="recipe-create-toggle">
+            <summary>
+              <span>Add Recipe</span>
+              <span class="accordion-indicator" aria-hidden="true">+</span>
+            </summary>
+            <form id="recipe-form" class="stacked-form quick-form">
+              <label>
+                Recipe name
+                <input id="recipe-name" type="text" placeholder="Turkey Chili" required />
+              </label>
+              <div class="ingredient-builder">
+                <div class="section-heading">
+                  <h3>Ingredients</h3>
+                  <button class="ghost-btn" id="add-recipe-ingredient" type="button">Add Ingredient</button>
+                </div>
+                <p class="muted recipe-empty-note">Add at least one ingredient before saving.</p>
+                <div id="recipe-ingredients-list" class="ingredient-list"></div>
+              </div>
+              <button class="primary-btn" type="submit">Save Recipe</button>
+            </form>
+          </details>
+          <div id="recipe-list" class="recipe-list"></div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

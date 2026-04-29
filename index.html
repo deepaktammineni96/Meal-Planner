@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meal Planner Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="home">
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="panel hero-panel">
+          <div class="sidebar-topbar">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="sidebar">
+              Collapse
+            </button>
+          </div>
+          <p class="eyebrow">Meal planner</p>
+          <h1>Plan the full week without losing flexibility.</h1>
+          <p class="muted">
+            Use separate pages for meal plans, recipe management, weekly scheduling,
+            and shopping list generation.
+          </p>
+        </div>
+
+        <nav class="panel nav-panel">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link" href="./plans.html">Meal Plans</a>
+          <a class="nav-link" href="./planner.html">Weekly Planner</a>
+          <a class="nav-link" href="./recipes.html">Recipes</a>
+          <a class="nav-link" href="./shopping-list.html">Shopping List</a>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <button class="sidebar-reopen hidden" id="sidebar-reopen" type="button" aria-controls="sidebar" aria-label="Show menu">
+          &#9776;
+        </button>
+        <section class="panel planner-header">
+          <div>
+            <p class="eyebrow">Overview</p>
+            <h2>Each function now has its own page.</h2>
+            <p class="muted">
+              Start by creating one or more weekly plans, add recipes to your library,
+              then schedule meals and generate a grocery list.
+            </p>
+          </div>
+        </section>
+
+        <section class="feature-grid">
+          <a class="panel feature-card" href="./plans.html">
+            <p class="eyebrow">1</p>
+            <h2>Meal Plans</h2>
+            <p class="muted">Create multiple future weeks and switch between them anytime.</p>
+          </a>
+          <a class="panel feature-card" href="./recipes.html">
+            <p class="eyebrow">2</p>
+            <h2>Recipes</h2>
+            <p class="muted">Store your frequently used meals and ingredients.</p>
+          </a>
+          <a class="panel feature-card" href="./planner.html">
+            <p class="eyebrow">3</p>
+            <h2>Weekly Planner</h2>
+            <p class="muted">Assign recipes to Monday through Sunday and drag them between days.</p>
+          </a>
+          <a class="panel feature-card" href="./shopping-list.html">
+            <p class="eyebrow">4</p>
+            <h2>Shopping List</h2>
+            <p class="muted">Generate a combined ingredient list from the selected week.</p>
+          </a>
+        </section>
+
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

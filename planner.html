@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weekly Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="planner">
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="panel hero-panel">
+          <div class="sidebar-topbar">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="sidebar">
+              Collapse
+            </button>
+          </div>
+          <p class="eyebrow">Weekly planner</p>
+          <h1>Assign recipes to the week.</h1>
+          <p class="muted">Use saved recipes or create a new one while planning, then move meals between days.</p>
+        </div>
+        <nav class="panel nav-panel">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link" href="./plans.html">Meal Plans</a>
+          <a class="nav-link" href="./planner.html">Weekly Planner</a>
+          <a class="nav-link" href="./recipes.html">Recipes</a>
+          <a class="nav-link" href="./shopping-list.html">Shopping List</a>
+        </nav>
+      </aside>
+      <main class="main-content">
+        <button class="sidebar-reopen hidden" id="sidebar-reopen" type="button" aria-controls="sidebar" aria-label="Show menu">
+          &#9776;
+        </button>
+        <section class="panel planner-header">
+          <div>
+            <p class="eyebrow">Selected plan</p>
+            <h2 id="current-plan-title">Create your first meal plan</h2>
+            <p id="current-plan-date" class="muted">Add a week, then start placing recipes from Monday through Sunday.</p>
+          </div>
+          <div class="header-actions">
+            <button id="print-plan-btn" class="ghost-btn" type="button">Print PDF</button>
+          </div>
+        </section>
+
+        <section class="panel add-meal-panel">
+          <div class="section-heading">
+            <h2>Add Meal To Week</h2>
+          </div>
+          <form id="meal-form" class="meal-form-grid">
+            <label>
+              Day
+              <select id="meal-day"></select>
+            </label>
+            <label>
+              Meal type
+              <select id="meal-type">
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Dinner">Dinner</option>
+              </select>
+            </label>
+            <label>
+              Use saved recipe
+              <select id="meal-recipe-select"></select>
+            </label>
+            <button id="add-to-day-btn" class="primary-btn" type="submit">Add To Day</button>
+          </form>
+
+          <div id="custom-recipe-panel" class="custom-recipe-panel hidden">
+            <div class="section-heading">
+              <h2>Custom Recipe</h2>
+            </div>
+            <form id="quick-recipe-form" class="stacked-form quick-form">
+              <label>
+                Recipe name
+                <input id="quick-recipe-name" type="text" required />
+              </label>
+              <label class="checkbox-row">
+                <input id="quick-recipe-save-to-library" type="checkbox" checked />
+                <span>Save this recipe to the recipe library</span>
+              </label>
+              <div class="ingredient-builder">
+                <div class="section-heading">
+                  <h3>Ingredients</h3>
+                  <button class="ghost-btn" id="add-quick-ingredient" type="button">Add Ingredient</button>
+                </div>
+                <p class="muted recipe-empty-note">Add at least one ingredient before saving.</p>
+                <div id="quick-recipe-ingredients-list" class="ingredient-list"></div>
+              </div>
+              <button class="secondary-btn" type="submit">Create And Add</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="week-grid" class="week-grid"></section>
+      </main>
+    </div>
+
+    <template id="meal-card-template">
+      <article class="meal-card" draggable="true">
+        <div class="meal-card-top">
+          <h3 class="meal-card-title"></h3>
+          <button class="delete-chip" type="button" aria-label="Remove meal">Remove</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

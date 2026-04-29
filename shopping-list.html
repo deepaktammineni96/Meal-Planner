@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopping List</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="shopping">
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="panel hero-panel">
+          <div class="sidebar-topbar">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="sidebar">
+              Collapse
+            </button>
+          </div>
+          <p class="eyebrow">Shopping list</p>
+          <h1>Generate a grocery list from the selected week.</h1>
+          <p class="muted">Ingredients are combined and duplicate items are counted together.</p>
+        </div>
+        <nav class="panel nav-panel">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link" href="./plans.html">Meal Plans</a>
+          <a class="nav-link" href="./planner.html">Weekly Planner</a>
+          <a class="nav-link" href="./recipes.html">Recipes</a>
+          <a class="nav-link" href="./shopping-list.html">Shopping List</a>
+        </nav>
+      </aside>
+      <main class="main-content">
+        <button class="sidebar-reopen hidden" id="sidebar-reopen" type="button" aria-controls="sidebar" aria-label="Show menu">
+          &#9776;
+        </button>
+        <section class="panel planner-header">
+          <div>
+            <p class="eyebrow">Selected plan</p>
+            <h2 id="current-plan-title">Create your first meal plan</h2>
+            <p id="current-plan-date" class="muted">Your shopping list is based on the active meal plan.</p>
+          </div>
+        </section>
+
+        <section class="panel shopping-panel">
+          <div class="section-heading">
+            <h2>Shopping List</h2>
+          </div>
+          <form id="shopping-item-form" class="shopping-form">
+            <label>
+              Add item manually
+              <div class="shopping-form-row">
+                <input id="shopping-item-quantity" type="text" placeholder="2 cartons, 1 bunch, 500 g..." />
+                <input id="shopping-item-input" type="text" placeholder="Milk, bananas, olive oil..." />
+                <button class="primary-btn" type="submit">Add Item</button>
+              </div>
+            </label>
+          </form>
+          <div id="shopping-list" class="shopping-list empty-state">
+            Choose or create a meal plan to generate a shopping list.
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>
