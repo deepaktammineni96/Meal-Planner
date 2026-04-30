@@ -1,5 +1,10 @@
 const STORAGE_KEY = "meal-planner-v1";
 const SIDEBAR_STORAGE_KEY = "meal-planner-sidebar-collapsed";
+const SUPABASE_CONFIG = window.MEAL_PLANNER_SUPABASE;
+const db = window.supabase && SUPABASE_CONFIG
+  ? window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey)
+  : null;
+let remoteStorageAvailable = Boolean(db);
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner"];
 const PAGE = document.body.dataset.page;
@@ -64,13 +69,13 @@ const els = {
   mealCardTemplate: document.getElementById("meal-card-template"),
 };
 
-let state = loadState();
+let state = createEmptyState();
 let dragContext = null;
 let editingRecipeId = null;
 
 boot();
 
-function boot() {
+async function boot() {
   hydrateSidebarState();
   setActiveNav();
   hydrateDaySelects();
@@ -79,27 +84,38 @@ function boot() {
     els.planDate.value = getMondayDateInputValue(new Date());
   }
   bindEvents();
+  state = await loadState();
   ensureActivePlan();
+  await saveState();
   render();
 }
 
-function loadState() {
+function createEmptyState() {
+  return {
+    recipes: [],
+    plans: [],
+    activePlanId: null,
+  };
+}
+
+async function loadState() {
+  if (remoteStorageAvailable) {
+    const { data, error } = await db.rpc("get_app_state");
+    if (error) {
+      showStorageError(error);
+    } else if (data?.recipes?.length || data?.plans?.length) {
+      return normalizeState(data);
+    }
+  }
+
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (saved) {
-    const parsed = JSON.parse(saved);
-    parsed.recipes = (parsed.recipes || []).map((recipe) => ({
-      ...recipe,
-      ingredients: (recipe.ingredients || []).map((ingredient) => normalizeIngredient(ingredient)),
-    }));
-    parsed.plans = (parsed.plans || []).map((plan) => ({
-      ...plan,
-      shoppingOverrides: (plan.shoppingOverrides || []).map((item) => ({
-        removed: false,
-        ...item,
-      })),
-    }));
-    return parsed;
+    try {
+      return normalizeState(JSON.parse(saved));
+    } catch (error) {
+      console.error("Unable to parse local meal planner data.", error);
+    }
   }
 
   const starterPlan = createPlan({
@@ -114,8 +130,50 @@ function loadState() {
   };
 }
 
-function saveState() {
+function normalizeState(source) {
+  return {
+    recipes: (source.recipes || []).map((recipe) => ({
+      ...recipe,
+      ingredients: (recipe.ingredients || []).map((ingredient) => normalizeIngredient(ingredient)),
+    })),
+    plans: (source.plans || []).map((plan) => ({
+      ...plan,
+      weekStart: plan.weekStart,
+      meals: (plan.meals || []).map((meal) => ({
+        ...meal,
+        mealType: normalizeMealType(meal.mealType),
+        recipeSnapshot: meal.recipeSnapshot
+          ? {
+              ...meal.recipeSnapshot,
+              ingredients: (meal.recipeSnapshot.ingredients || []).map((ingredient) => normalizeIngredient(ingredient)),
+            }
+          : undefined,
+      })),
+      shoppingOverrides: (plan.shoppingOverrides || []).map((item) => ({
+        removed: false,
+        updated: false,
+        ...item,
+      })),
+    })),
+    activePlanId: source.activePlanId || null,
+  };
+}
+
+async function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!remoteStorageAvailable) {
+    return;
+  }
+
+  const { error } = await db.rpc("save_app_state", { p_state: state });
+  if (error) {
+    showStorageError(error);
+  }
+}
+
+function showStorageError(error) {
+  remoteStorageAvailable = false;
+  console.error("Supabase storage error:", error);
 }
 
 function bindEvents() {
@@ -132,7 +190,7 @@ function bindEvents() {
   }
 
   if (els.planForm) {
-    els.planForm.addEventListener("submit", (event) => {
+    els.planForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const plan = createPlan({
@@ -142,14 +200,14 @@ function bindEvents() {
 
       state.plans.unshift(plan);
       state.activePlanId = plan.id;
-      persistAndRender();
+      await persistAndRender();
       els.planForm.reset();
       els.planDate.value = getMondayDateInputValue(new Date());
     });
   }
 
   if (els.recipeForm) {
-    els.recipeForm.addEventListener("submit", (event) => {
+    els.recipeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const recipe = buildRecipeFromForm(els.recipeName, els.recipeIngredientsList);
@@ -158,14 +216,14 @@ function bindEvents() {
       }
 
       state.recipes.unshift(recipe);
-      persistAndRender();
+      await persistAndRender();
       els.recipeForm.reset();
       resetIngredientRows(els.recipeIngredientsList);
     });
   }
 
   if (els.mealForm) {
-    els.mealForm.addEventListener("submit", (event) => {
+    els.mealForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const activePlan = getActivePlan();
@@ -180,7 +238,7 @@ function bindEvents() {
         mealType: els.mealType.value,
       });
 
-      persistAndRender();
+      await persistAndRender();
     });
   }
 
@@ -203,7 +261,7 @@ function bindEvents() {
   }
 
   if (els.quickRecipeForm) {
-    els.quickRecipeForm.addEventListener("submit", (event) => {
+    els.quickRecipeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const recipe = buildRecipeFromForm(els.quickRecipeName, els.quickRecipeIngredientsList);
@@ -233,7 +291,7 @@ function bindEvents() {
         });
       }
 
-      persistAndRender();
+      await persistAndRender();
       els.quickRecipeForm.reset();
       els.quickRecipeSaveToLibrary.checked = true;
       resetIngredientRows(els.quickRecipeIngredientsList);
@@ -241,7 +299,7 @@ function bindEvents() {
   }
 
   if (els.shoppingItemForm) {
-    els.shoppingItemForm.addEventListener("submit", (event) => {
+    els.shoppingItemForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const activePlan = getActivePlan();
@@ -262,7 +320,7 @@ function bindEvents() {
         updated: false,
       });
 
-      persistAndRender();
+      await persistAndRender();
       els.shoppingItemForm.reset();
     });
   }
@@ -308,8 +366,8 @@ function ensureActivePlan() {
   }
 }
 
-function persistAndRender() {
-  saveState();
+async function persistAndRender() {
+  await saveState();
   render();
 }
 
@@ -359,25 +417,25 @@ function renderPlans() {
         </div>
       `;
 
-      item.querySelector(".plan-select-btn").addEventListener("click", () => {
+      item.querySelector(".plan-select-btn").addEventListener("click", async () => {
         state.activePlanId = plan.id;
-        persistAndRender();
+        await persistAndRender();
       });
 
-      item.querySelector(".plan-open-btn").addEventListener("click", () => {
+      item.querySelector(".plan-open-btn").addEventListener("click", async () => {
         state.activePlanId = plan.id;
-        saveState();
+        await saveState();
         window.location.href = "./planner.html";
       });
 
-      item.querySelector(".plan-shopping-btn").addEventListener("click", () => {
+      item.querySelector(".plan-shopping-btn").addEventListener("click", async () => {
         state.activePlanId = plan.id;
-        saveState();
+        await saveState();
         window.location.href = "./shopping-list.html";
       });
 
-      item.querySelector(".plan-delete-btn").addEventListener("click", () => {
-        removePlan(plan.id);
+      item.querySelector(".plan-delete-btn").addEventListener("click", async () => {
+        await removePlan(plan.id);
       });
 
       els.planList.appendChild(item);
@@ -428,13 +486,13 @@ function renderRecipes() {
         renderRecipes();
       });
 
-      item.querySelector(".recipe-delete-btn").addEventListener("click", () => {
-        deleteRecipe(recipe.id);
+      item.querySelector(".recipe-delete-btn").addEventListener("click", async () => {
+        await deleteRecipe(recipe.id);
       });
 
-      item.querySelector(".recipe-edit-form").addEventListener("submit", (event) => {
+      item.querySelector(".recipe-edit-form").addEventListener("submit", async (event) => {
         event.preventDefault();
-        updateRecipe(
+        await updateRecipe(
           recipe.id,
           item.querySelector(".recipe-edit-name").value.trim(),
           collectIngredientsFromRows(ingredientContainer)
@@ -457,8 +515,8 @@ function renderRecipes() {
         renderRecipes();
       });
 
-      item.querySelector(".recipe-delete-btn").addEventListener("click", () => {
-        deleteRecipe(recipe.id);
+      item.querySelector(".recipe-delete-btn").addEventListener("click", async () => {
+        await deleteRecipe(recipe.id);
       });
     }
 
@@ -528,10 +586,10 @@ function renderWeek() {
         slot.classList.remove("drag-over");
       });
 
-      slot.addEventListener("drop", (event) => {
+      slot.addEventListener("drop", async (event) => {
         event.preventDefault();
         slot.classList.remove("drag-over");
-        moveMeal(dragContext?.mealId, day, mealType);
+        await moveMeal(dragContext?.mealId, day, mealType);
       });
 
       slot.innerHTML = `
@@ -566,8 +624,8 @@ function renderWeek() {
           dragContext = null;
         });
 
-        mealCard.querySelector(".delete-chip").addEventListener("click", () => {
-          removeMeal(meal.id);
+        mealCard.querySelector(".delete-chip").addEventListener("click", async () => {
+          await removeMeal(meal.id);
         });
 
         slot.appendChild(mealCard);
@@ -599,7 +657,7 @@ function getMealTypeHeights(activePlan) {
   return heights;
 }
 
-function renderShoppingList() {
+async function renderShoppingList() {
   const activePlan = getActivePlan();
   if (!els.shoppingList) {
     return;
@@ -610,45 +668,26 @@ function renderShoppingList() {
     return;
   }
 
-  const ingredientCounts = new Map();
+  els.shoppingList.textContent = "Loading shopping list...";
+  els.shoppingList.className = "shopping-list empty-state";
 
-  activePlan.meals.forEach((meal) => {
-    const recipe = getMealRecipe(meal);
-    if (!recipe) {
-      return;
-    }
-
-    recipe.ingredients.forEach((ingredient) => {
-      const normalized = normalizeIngredient(ingredient);
-      const key = normalized.name.toLowerCase();
-      const current = ingredientCounts.get(key);
-
-      if (current) {
-        current.entries.push(normalized);
-      } else {
-        ingredientCounts.set(key, {
-          label: normalized.name,
-          entries: [normalized],
-        });
-      }
-    });
-  });
+  const ingredientGroups = await loadShoppingIngredientGroups(activePlan);
 
   activePlan.shoppingOverrides = activePlan.shoppingOverrides || [];
 
-  const recipeItems = [...ingredientCounts.entries()].map(([key, ingredient]) => {
-    const override = activePlan.shoppingOverrides.find((item) => item.sourceKey === key);
+  const recipeItems = ingredientGroups.map((ingredient) => {
+    const override = activePlan.shoppingOverrides.find((item) => item.sourceKey === ingredient.sourceKey);
     if (override?.removed) {
       return null;
     }
     const suggestion = summarizeIngredientQuantities(ingredient.entries);
     return {
-      id: override?.id || `recipe-${key}`,
+      id: override?.id || `recipe-${ingredient.sourceKey}`,
       label: override?.label || ingredient.label,
       quantity: override?.quantity || suggestion.quantity,
       checked: override?.checked || false,
       source: getShoppingSourceLabel(override, false),
-      sourceKey: key,
+      sourceKey: ingredient.sourceKey,
       manual: false,
     };
   }).filter(Boolean);
@@ -692,9 +731,9 @@ function renderShoppingList() {
     .join("");
 
   els.shoppingList.querySelectorAll(".shopping-checkbox").forEach((checkbox) => {
-    checkbox.addEventListener("change", (event) => {
+    checkbox.addEventListener("change", async (event) => {
       const row = event.target.closest(".shopping-item");
-      toggleShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, event.target.checked);
+      await toggleShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, event.target.checked);
     });
   });
 
@@ -714,30 +753,72 @@ function renderShoppingList() {
         <button class="primary-btn shopping-save-btn" type="button">Save</button>
       `;
 
-      row.querySelector(".shopping-checkbox").addEventListener("change", (changeEvent) => {
-        toggleShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, changeEvent.target.checked);
+      row.querySelector(".shopping-checkbox").addEventListener("change", async (changeEvent) => {
+        await toggleShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, changeEvent.target.checked);
       });
 
-      row.querySelector(".shopping-save-btn").addEventListener("click", () => {
+      row.querySelector(".shopping-save-btn").addEventListener("click", async () => {
         const nextLabel = row.querySelector(".shopping-item-edit").value.trim();
         const nextQuantity = row.querySelector(".shopping-item-edit-qty").value.trim();
         if (!nextLabel) {
           return;
         }
-        updateShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, nextLabel, nextQuantity);
+        await updateShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey, nextLabel, nextQuantity);
       });
     });
   });
 
   els.shoppingList.querySelectorAll(".shopping-delete-btn").forEach((button) => {
-    button.addEventListener("click", (event) => {
+    button.addEventListener("click", async (event) => {
       const row = event.target.closest(".shopping-item");
-      deleteShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey);
+      await deleteShoppingItem(row.dataset.shoppingId, row.dataset.manual === "true", row.dataset.sourceKey);
     });
   });
 }
 
-function moveMeal(mealId, newDay, newMealType) {
+async function loadShoppingIngredientGroups(activePlan) {
+  if (remoteStorageAvailable) {
+    const { data, error } = await db.rpc("get_shopping_recipe_items", { p_plan_id: activePlan.id });
+    if (!error) {
+      return (data || []).map((ingredient) => ({
+        sourceKey: ingredient.source_key,
+        label: ingredient.label,
+        entries: (ingredient.entries || []).map((entry) => normalizeIngredient(entry)),
+      }));
+    }
+
+    showStorageError(error);
+  }
+
+  const ingredientCounts = new Map();
+
+  activePlan.meals.forEach((meal) => {
+    const recipe = getMealRecipe(meal);
+    if (!recipe) {
+      return;
+    }
+
+    recipe.ingredients.forEach((ingredient) => {
+      const normalized = normalizeIngredient(ingredient);
+      const key = normalized.name.toLowerCase();
+      const current = ingredientCounts.get(key);
+
+      if (current) {
+        current.entries.push(normalized);
+      } else {
+        ingredientCounts.set(key, {
+          sourceKey: key,
+          label: normalized.name,
+          entries: [normalized],
+        });
+      }
+    });
+  });
+
+  return [...ingredientCounts.values()];
+}
+
+async function moveMeal(mealId, newDay, newMealType) {
   const activePlan = getActivePlan();
   if (!activePlan) {
     return;
@@ -750,20 +831,20 @@ function moveMeal(mealId, newDay, newMealType) {
 
   meal.day = newDay;
   meal.mealType = newMealType;
-  persistAndRender();
+  await persistAndRender();
 }
 
-function removeMeal(mealId) {
+async function removeMeal(mealId) {
   const activePlan = getActivePlan();
   if (!activePlan) {
     return;
   }
 
   activePlan.meals = activePlan.meals.filter((meal) => meal.id !== mealId);
-  persistAndRender();
+  await persistAndRender();
 }
 
-function removePlan(planId) {
+async function removePlan(planId) {
   const nextPlans = state.plans.filter((plan) => plan.id !== planId);
 
   if (!nextPlans.length) {
@@ -773,7 +854,7 @@ function removePlan(planId) {
     });
     state.plans = [fallbackPlan];
     state.activePlanId = fallbackPlan.id;
-    persistAndRender();
+    await persistAndRender();
     return;
   }
 
@@ -783,10 +864,10 @@ function removePlan(planId) {
     state.activePlanId = nextPlans[0].id;
   }
 
-  persistAndRender();
+  await persistAndRender();
 }
 
-function deleteRecipe(recipeId) {
+async function deleteRecipe(recipeId) {
   state.recipes = state.recipes.filter((recipe) => recipe.id !== recipeId);
   if (editingRecipeId === recipeId) {
     editingRecipeId = null;
@@ -796,10 +877,10 @@ function deleteRecipe(recipeId) {
     plan.meals = plan.meals.filter((meal) => meal.recipeId !== recipeId);
   });
 
-  persistAndRender();
+  await persistAndRender();
 }
 
-function updateRecipe(recipeId, name, ingredients) {
+async function updateRecipe(recipeId, name, ingredients) {
   if (!name || !ingredients.length) {
     return;
   }
@@ -812,10 +893,10 @@ function updateRecipe(recipeId, name, ingredients) {
   recipe.name = name;
   recipe.ingredients = ingredients;
   editingRecipeId = null;
-  persistAndRender();
+  await persistAndRender();
 }
 
-function toggleShoppingItem(itemId, isManual, sourceKey, checked) {
+async function toggleShoppingItem(itemId, isManual, sourceKey, checked) {
   const activePlan = getActivePlan();
   if (!activePlan) {
     return;
@@ -824,10 +905,10 @@ function toggleShoppingItem(itemId, isManual, sourceKey, checked) {
   activePlan.shoppingOverrides = activePlan.shoppingOverrides || [];
   const existing = findOrCreateShoppingOverride(activePlan, itemId, isManual, sourceKey);
   existing.checked = checked;
-  persistAndRender();
+  await persistAndRender();
 }
 
-function updateShoppingItem(itemId, isManual, sourceKey, label, quantity) {
+async function updateShoppingItem(itemId, isManual, sourceKey, label, quantity) {
   const activePlan = getActivePlan();
   if (!activePlan) {
     return;
@@ -838,10 +919,10 @@ function updateShoppingItem(itemId, isManual, sourceKey, label, quantity) {
   existing.label = label;
   existing.quantity = quantity;
   existing.updated = true;
-  persistAndRender();
+  await persistAndRender();
 }
 
-function deleteShoppingItem(itemId, isManual, sourceKey) {
+async function deleteShoppingItem(itemId, isManual, sourceKey) {
   const activePlan = getActivePlan();
   if (!activePlan) {
     return;
@@ -851,13 +932,13 @@ function deleteShoppingItem(itemId, isManual, sourceKey) {
 
   if (isManual) {
     activePlan.shoppingOverrides = activePlan.shoppingOverrides.filter((item) => item.id !== itemId);
-    persistAndRender();
+    await persistAndRender();
     return;
   }
 
   const existing = findOrCreateShoppingOverride(activePlan, itemId, false, sourceKey);
   existing.removed = true;
-  persistAndRender();
+  await persistAndRender();
 }
 
 function findOrCreateShoppingOverride(activePlan, itemId, isManual, sourceKey) {
